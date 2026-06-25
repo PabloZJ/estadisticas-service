@@ -11,6 +11,7 @@ Prefijo de rutas: /api/estadisticas
 import os
 from contextlib import asynccontextmanager
 
+from fastapi.responses import JSONResponse
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -145,3 +146,17 @@ def estadisticas_globales(usuario: dict = Depends(usuario_actual)):
         "top_jugadores": top,
         "apuestas": {**ap, "win_rate": win_rate},
     }
+
+@app.get("/livez")
+def liveness():
+    return {"status": "ok", "service": "estadisticas-service"}
+
+@app.get("/readyz")
+def readiness():
+    try:
+        with conexion() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+        return {"status": "ready", "service": "estadisticas-service"}
+    except Exception as e:
+        return JSONResponse(status_code=503, content={"status": "not ready", "error": str(e)})
